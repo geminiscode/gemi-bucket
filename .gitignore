@@ -1,0 +1,21 @@
+# Carpetas sensibles que no deben subirse a GitHub
+storage/
+logs/
+tenants/tenants_map.json
+
+# Archivos temporales o generados automáticamente
+*.log
+*.tmp
+*.swp
+.DS_Store
+
+# Entorno local y cache
+.env
+.env.local
+.cache
+/vendor/
+composer.phar
+
+# Archivos de desarrollo (opcional)
+public/test_*.php
+app/services/test_*.php
