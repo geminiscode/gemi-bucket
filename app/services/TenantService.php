@@ -1,21 +1,50 @@
 <?php
-require_once __DIR__ . '/../interfaces/responses.php';
 
 
 
+/*===============================================================================================*/
+/* IMPORTS --------------------------------------------------------------------------------------*/
+/*===============================================================================================*/
+
+
+
+require_once __INTERFACE_RESPONSES;
+
+
+
+/*===============================================================================================*/
+/* SERVICE --------------------------------------------------------------------------------------*/
+/*===============================================================================================*/
+
+
+ 
+/**
+ * Class TenantService
+ *
+ * Este servicio se encarga de gestionar:
+ * - Registro de nuevos inquilinos
+ * - Asignación de identificadores únicos (hash)
+ * - Creación de carpetas base por cliente
+ * - Actualización automática del mapa de inquilinos
+ */
 class TenantService
 {
+
+
+
     /**
      * Genera o actualiza el mapa de inquilinos desde tenants.json
+     *
+     * @return array Respuesta estandarizada con éxito/error
      */
     public static function updateTenantMap()
     {
-        if (!file_exists(TENANTS_FILE)) {
+        if (!file_exists(__TENANTS_TENANTS)) {
             return Response::error('Archivo tenants.json no encontrado');
         }
 
         // Leer lista blanca de dominios
-        $raw = file_get_contents(TENANTS_FILE);
+        $raw = file_get_contents(__TENANTS_TENANTS);
         $data = json_decode($raw, true);
 
         if (json_last_error() !== JSON_ERROR_NONE) {
@@ -27,8 +56,8 @@ class TenantService
 
         // Leer mapa existente (si hay)
         $existingMap = [];
-        if (file_exists(TENANT_MAP_FILE)) {
-            $rawExisting = file_get_contents(TENANT_MAP_FILE);
+        if (file_exists(__TENANTS_TENANTS_MAP)) {
+            $rawExisting = file_get_contents(__TENANTS_TENANTS_MAP);
             $existingMap = json_decode($rawExisting, true) ?? [];
 
             if (json_last_error() !== JSON_ERROR_NONE) {
@@ -45,7 +74,7 @@ class TenantService
             // Si ya existe un hash para este dominio, reutilízalo
             if (isset($existingMap[$domain])) {
                 $hash = $existingMap[$domain]['hash'];
-                $tenantPath = STORAGE_PATH . '/' . $hash;
+                $tenantPath = __STORAGE_DIR . '/' . $hash;
 
                 // Asegurarse de que la carpeta aún exista
                 if (!file_exists($tenantPath)) {
@@ -66,7 +95,7 @@ class TenantService
             } else {
                 // Si no existe, genera uno nuevo
                 $hash = self::generateHashForDomain($domain);
-                $tenantPath = STORAGE_PATH . '/' . $hash;
+                $tenantPath = __STORAGE_DIR . '/' . $hash;
 
                 $mkdirResult = mkdir($tenantPath, 0777, true);
                 if (!$mkdirResult) {
@@ -91,7 +120,7 @@ class TenantService
         }
 
         // Guardar el mapa actualizado
-        $result = file_put_contents(TENANT_MAP_FILE, json_encode($map, JSON_PRETTY_PRINT));
+        $result = file_put_contents(__TENANTS_TENANTS_MAP, json_encode($map, JSON_PRETTY_PRINT));
         if ($result === false) {
             return Response::error('No se pudo guardar tenants_map.json', null, 500);
         }
@@ -102,7 +131,10 @@ class TenantService
     }
 
     /**
-     * Genera un hash SHA-1 para un dominio
+     * Genera un hash SHA-1 único para un dominio
+     *
+     * @param string $domain Dominio del cliente
+     * @return string Hash SHA-1 reducido a 16 caracteres
      */
     private static function generateHashForDomain($domain)
     {
@@ -110,7 +142,10 @@ class TenantService
     }
 
     /**
-     * Crea la estructura básica para un nuevo inquilino
+     * Crea la estructura base para un nuevo inquilino
+     *
+     * @param string $path Ruta donde crear la estructura
+     * @return array Respuesta estandarizada con éxito/error
      */
     private static function createTenantStructure($path)
     {

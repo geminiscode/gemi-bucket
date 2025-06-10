@@ -1,11 +1,32 @@
 <?php
 
-require_once __DIR__ . '/../interfaces/responses.php';
-require_once __DIR__ . '/../services/TenantService.php';
-require_once __DIR__ . '/../services/ReferenceService.php';
+
+
+/*===============================================================================================*/
+/* IMPORTS --------------------------------------------------------------------------------------*/
+/*===============================================================================================*/
+
+
+
+require_once __INTERFACE_RESPONSES;
+require_once __SERVICE_TENANT;
+require_once __SERVICE_REFERENCE;
+require_once __SERVICE_HASH;
+require_once __SERVICE_METADATA;
+
+
+
+/*===============================================================================================*/
+/* CONTROLLER -----------------------------------------------------------------------------------*/
+/*===============================================================================================*/
+
+
 
 class UploadController
 {
+
+
+
     /**
      * Procesa una petición POST para subir un archivo
      */
@@ -26,16 +47,16 @@ class UploadController
         }
 
         // Cargar mapa de inquilinos
-        $rawMap = file_get_contents(TENANT_MAP_FILE);
+        $rawMap = file_get_contents(__TENANTS_TENANTS_MAP);
         $tenantMap = json_decode($rawMap, true);
-
+        
         if (!isset($tenantMap[$originDomain])) {
             echo json_encode(Response::error("Dominio no autorizado: $originDomain", null, 403));
             return;
         }
 
         $tenantHash = $tenantMap[$originDomain]['hash'];
-        $tenantPath = STORAGE_PATH . '/' . $tenantHash;
+        $tenantPath = __STORAGE_DIR . '/' . $tenantHash;
 
         // Decisión tomada por el cliente (si aplica)
         $selectedOption = $_POST['selected'] ?? null;
@@ -93,8 +114,12 @@ class UploadController
             return;
         }
 
-        // Generar hash único para el archivo
-        $fileHash = self::generateFileHash($uploadedFile['name']);
+        // Usar HashService para generar un hash seguro
+        $fileHash = HashService::generateUniqueHash($uploadedFile['name']);
+
+        // Registrar metadatos del archivo
+        $metadata = MetadataService::getFileMetadata($uploadedFile);
+        MetadataService::saveFileMetadata($tenantHash, $fileHash, $metadata);
 
         // Crear ruta física final
         $finalPath = "$tenantPath/files/" . ltrim($requestedPath, '/');
@@ -128,16 +153,21 @@ class UploadController
     }
 
     /**
-     * Genera un hash único para identificar el archivo
+     * Procesa la decisión tomada por el usuario cuando intenta subir un archivo
+     * a una ruta donde ya existe otro archivo.
      *
-     * @param string $originalName Nombre original del archivo
-     * @return string Hash SHA-256
+     * Dependiendo de la opción seleccionada (`selected`):
+     * - 1: Omitir → No hace nada
+     * - 2: Sobreescribir → Mantiene el mismo hash y reemplaza el archivo físico
+     * - 3: Reemplazar → Elimina la referencia existente y crea una nueva con nuevo hash
+     *
+     * @param string $tenantHash     Hash del inquilino (cliente)
+     * @param string $tenantPath     Ruta física del directorio del cliente
+     * @param string $requestedPath  Ruta deseada para el archivo (ej. /imagenes/foto.jpg)
+     * @param string $selectedOption Opción seleccionada por el usuario (1, 2 o 3)
+     *
+     * @return void                  Envía una respuesta JSON al cliente
      */
-    private static function generateFileHash(string $originalName): string
-    {
-        return hash('sha256', $originalName . uniqid('', true));
-    }
-
     private static function processSelectedOption(string $tenantHash, string $tenantPath, string $requestedPath, string $selectedOption)
     {
         $existingRef = ReferenceService::findReferenceByPath($tenantHash, $requestedPath);
@@ -161,7 +191,7 @@ class UploadController
             case 3:
                 // Reemplazar (nuevo hash)
                 ReferenceService::deleteReference($tenantHash, $existingRef['data']['hash']);
-                $fileHash = self::generateFileHash($_FILES['archivo']['name']);
+                $fileHash = HashService::generateUniqueHash($_FILES['archivo']['name']); // ← Uso de HashService
                 break;
 
             default:
@@ -194,7 +224,4 @@ class UploadController
             ]);
         }
     }
-
-
-    
 }

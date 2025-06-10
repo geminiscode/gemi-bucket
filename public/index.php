@@ -2,14 +2,19 @@
 
 // Cargar configuración global
 require_once '../app/config/config.php';
+require_once '../app/config/paths.php';
+require_once __TENANTS_TENANTS;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     if ($_POST['action'] === 'upload') {
-        require_once '../app/controllers/UploadController.php';
+        require_once __CONTROLLER_UPLOAD;
         UploadController::handleUpload();
         exit;
     }
 }
+
+echo "<pre>" . json_encode(TenantService::updateTenantMap()) . "</pre>";// Actualizar mapa de inquilinos al inicio
+
 ?>
 
 <!DOCTYPE html>

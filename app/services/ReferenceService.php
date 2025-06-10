@@ -1,10 +1,36 @@
 <?php
-require_once __DIR__ . '/../interfaces/responses.php';
 
 
 
+/*===============================================================================================*/
+/* IMPORTS --------------------------------------------------------------------------------------*/
+/*===============================================================================================*/
+
+
+
+require_once __INTERFACE_RESPONSES;
+
+
+
+/*===============================================================================================*/
+/* SERVICE --------------------------------------------------------------------------------------*/
+/*===============================================================================================*/
+
+
+ 
+/**
+ * Class ReferenceService
+ *
+ * Este servicio se encarga de:
+ * - Registrar referencias {hash, path} de archivos subidos
+ * - Rotación automática de archivos JSON cuando exceden tamaño
+ * - Búsqueda y eliminación eficiente de referencias
+ */
 class ReferenceService
 {
+
+
+
     /**
      * Devuelve la ruta del último archivo de referencia disponible
      *
@@ -13,7 +39,7 @@ class ReferenceService
      */
     public static function getLastReferenceFile(string $tenantHash)
     {
-        $refDir = STORAGE_PATH . '/' . $tenantHash . '/references/';
+        $refDir = __STORAGE_DIR . '/' . $tenantHash . '/references/';
 
         if (!is_dir($refDir)) {
             return Response::error("Carpeta de referencias no encontrada: $refDir", null, 500);
@@ -136,7 +162,7 @@ class ReferenceService
      */
     public static function findReferenceByHash(string $tenantHash, string $fileHash)
     {
-        $refDir = STORAGE_PATH . '/' . $tenantHash . '/references/';
+        $refDir = __STORAGE_DIR . '/' . $tenantHash . '/references/';
         $files = glob($refDir . 'ref_*.json');
 
         if (empty($files)) {
@@ -164,7 +190,7 @@ class ReferenceService
      */
     public static function deleteReference(string $tenantHash, string $fileHash)
     {
-        $refDir = STORAGE_PATH . '/' . $tenantHash . '/references/';
+        $refDir = __STORAGE_DIR . '/' . $tenantHash . '/references/';
         $files = glob($refDir . 'ref_*.json');
 
         $found = false;
@@ -195,10 +221,36 @@ class ReferenceService
         return Response::success("Referencia con hash '$fileHash' eliminada");
     }
 
-
+    /**
+     * Busca una referencia de archivo por su ruta dentro del espacio de un inquilino.
+     *
+     * Este método recorre todos los archivos JSON en la carpeta "references/" del inquilino
+     * y busca si alguno contiene una entrada con el campo 'path' igual al proporcionado.
+     *
+     * @param string $tenantHash Hash único del inquilino (cliente)
+     * @param string $filePath   Ruta relativa del archivo a buscar (ej. /imagenes/foto.jpg)
+     *
+     * @return array Devuelve una respuesta estandarizada:
+     *               - Si se encontró el archivo:
+     *                   [
+     *                       'success' => true,
+     *                       'message' => 'Archivo encontrado',
+     *                       'data'    => ['hash' => 'abc123...', 'path' => '/imagenes/foto.jpg']
+     *                   ]
+     *               - Si no se encontró:
+     *                   [
+     *                       'success' => false,
+     *                       'message' => "No se encontró ningún archivo en la ruta: $filePath"
+     *                   ]
+     *               - Si no hay archivos de referencia disponibles:
+     *                   [
+     *                       'success' => false,
+     *                       'message' => 'No hay archivos de referencia disponibles'
+     *                   ]
+     */
     public static function findReferenceByPath(string $tenantHash, string $filePath)
     {
-        $refDir = STORAGE_PATH . '/' . $tenantHash . '/references/';
+        $refDir = __STORAGE_DIR . '/' . $tenantHash . '/references/';
         $files = glob($refDir . 'ref_*.json');
 
         if (empty($files)) {
