@@ -1,5 +1,5 @@
 {
-    "localhost": {
+    "http://localhost": {
         "hash": "d1292a5312c69108",
         "path": "\/Applications\/XAMPP\/xamppfiles\/htdocs\/gemi-bucket\/app\/storage\/d1292a5312c69108",
         "activo": true
