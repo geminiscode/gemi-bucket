@@ -10,6 +10,10 @@ require_once '../dev/modules/Router/Router.php';
 require_once '../dev/modules/Router/Exception/RouteNotFoundException.php';
 require_once '../dev/modules/Router/Service/RouteMatcher.php';
 require_once '../dev/modules/Auth/Auth.php';
+require_once '../dev/modules/Filesystem/Service/FileService.php';
+require_once '../dev/modules/Filesystem/Service/FolderService.php';
+require_once '../dev/modules/Filesystem/Filesystem.php';
+
 
 
 
@@ -97,6 +101,60 @@ $router->get('/protected', function () {
         'exp' => date('Y-m-d H:i:s', $_SERVER['JWT_PAYLOAD']['exp'] ?? 0)
     ]);
 }, $auth->middleware());
+
+
+
+
+$fs = new Filesystem();
+
+// Crear carpeta
+$result = $fs->createFolder(__DIR__ . '/archive/8523ab8065a69338/files/test');
+if ($result === true) {
+    echo json_encode("Carpeta creada correctamente");
+    echo "<br><br>";
+} else {
+    echo json_encode($result);
+    echo "<br><br>";
+}
+
+
+// Subir archivo con opciones
+$content = "Contenido de prueba";
+$result = $fs->createFile(__DIR__ . '/archive/8523ab8065a69338/files/test/file.txt', $content, 1); // 2: mantener ambos
+if ($result === true) {
+    echo json_encode("Archivo creado correctamente");
+    echo "<br><br>";
+} else {
+    echo json_encode($result);
+    echo "<br><br>";
+}
+
+// Mover archivo con opción de conflicto
+$result = $fs->moveFile(
+    __DIR__ . '/archive/8523ab8065a69338/files/test/file.txt',
+    __DIR__ . '/archive/8523ab8065a69338/files/new_folder/file.txt',
+    1 // 1: reescribir si ya existe
+);
+
+if ($result === true) {
+    echo json_encode("Archivo movido correctamente");
+    echo "<br><br>";
+} else {
+    echo json_encode($result);
+    echo "<br><br>";
+}
+
+// Eliminar archivo
+$result = $fs->deleteFile( __DIR__ . '/archive/8523ab8065a69338/files/new_folder/file.txt');
+if ($result === true) {
+    echo json_encode("Archivo eliminado correctamente");
+    echo "<br><br>";
+} else {
+    echo json_encode($result);
+    echo "<br><br>";
+}
+
+
 
 
 // Finalmente, lanzamos el router
