@@ -13,6 +13,7 @@ require_once '../dev/modules/Auth/Auth.php';
 require_once '../dev/modules/Filesystem/Service/FileService.php';
 require_once '../dev/modules/Filesystem/Service/FolderService.php';
 require_once '../dev/modules/Filesystem/Filesystem.php';
+require_once '../dev/modules/DataHandler/DataHandler.php';
 
 
 
@@ -105,6 +106,8 @@ $router->get('/protected', function () {
 
 
 
+
+
 $fs = new Filesystem();
 
 // Crear carpeta
@@ -157,5 +160,37 @@ if ($result === true) {
 
 
 
+
+
 // Finalmente, lanzamos el router
 $router->dispatch();
+echo "<br><br>";
+echo "<br><br>";
+
+
+$dataHandler = new DataHandler();
+$filePath = __DIR__ . '/data.json';
+
+// Leer valor específico
+$email = $dataHandler->json()->read($filePath, 'email');
+echo "Email actual: $email\n<br><br>";
+
+// Actualizar valor anidado
+$data = $dataHandler->json()->read($filePath); // leer completo
+$data = $dataHandler->json()->update($data, 'preferences.notifications', false);
+
+// Eliminar campo anidado
+$data = $dataHandler->json()->delete($data, 'preferences.theme');
+
+// Agregar hobby
+$data = $dataHandler->json()->push($data, 'hobbies.mada', 'leer', 1);
+$data = $dataHandler->json()->push($data, 'hobbies.oba.mayte', 'nuevo', 0);
+
+// Guardar cambios
+echo $data . "\n<br><br>";
+$result = $dataHandler->json()->write($filePath, $data);
+if ($result === true) {
+    echo "✅ Archivo actualizado correctamente.\n";
+} else {
+    echo "❌ Error al guardar: $result\n";
+}
