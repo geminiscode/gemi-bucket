@@ -8,7 +8,7 @@
 
 
 
-require_once __DIR__ . '/Service//JsonService.php';
+require_once __DIR__ . '/Service/HashService.php';
 
 
 
@@ -19,23 +19,23 @@ require_once __DIR__ . '/Service//JsonService.php';
 
 
 /**
- * Clase principal del módulo DataHandler.
- * Proporciona acceso a diferentes servicios de manipulación de datos (JSON, XML, etc.)
+ * Clase principal del módulo Hasher.
+ * Proporciona acceso a servicios especializados de hashing seguro.
  */
-class DataHandler
+class Hasher
 {
-    private ?JsonService $jsonService = null;
+    private ?HashService $hashService = null;
 
     /**
-     * Devuelve una instancia del servicio de JSON
+     * Devuelve una instancia del servicio de hashing
      */
-    public function json(): JsonService
+    public function hash(): HashService
     {
-        if (!$this->jsonService) {
-            $this->jsonService = new JsonService();
+        if (!$this->hashService) {
+            $this->hashService = new HashService();
         }
-        return $this->jsonService;
+        return $this->hashService;
     }
 
-    // Aquí puedes agregar métodos similares para XML, HTML, etc. cuando lo necesites.
+    // Aquí puedes añadir métodos futuros para HMAC, UUIDs avanzados, etc.
 }

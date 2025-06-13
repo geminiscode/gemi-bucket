@@ -14,7 +14,7 @@ require_once '../dev/modules/Filesystem/Service/FileService.php';
 require_once '../dev/modules/Filesystem/Service/FolderService.php';
 require_once '../dev/modules/Filesystem/Filesystem.php';
 require_once '../dev/modules/DataHandler/DataHandler.php';
-
+require_once '../dev/modules/Hasher/Hasher.php';
 
 
 
@@ -31,166 +31,25 @@ function setClientTimezone()
 }
 setClientTimezone();
 
-// Definimos la base URL (lo que viene después del dominio)
-$baseUrl = '/gemi-bucket/public'; // ← Esto es importante para que limpie bien las rutas
-
-// Dominios permitidos para CORS (opcional, para desarrollo local puedes dejar vacío)
-$allowedDomains = ['http://localhost'];
-
-// Instanciamos el router
-$router = new Router($baseUrl, $allowedDomains);
-
-// Definimos algunas rutas de prueba
-$router->get('/', function () {
-    //echo json_encode(['message' => 'Bienvenido al índice']);
-    echo json_encode([
-    'server_time' => date('Y-m-d H:i:s'),
-    'timezone' => date_default_timezone_get()
-]);
-});
-
-$router->get('/hello', function () {
-    echo json_encode(['message' => 'Hola desde hello']);
-});
-
-$router->get('/user/{id}', function ($params) {
-    echo json_encode(['message' => 'Usuario ID: ' . $params['id']]);
-});
-
-$router->post('/submit', function () {
-    echo json_encode(['message' => 'Datos recibidos', 'data' => $_POST]);
-});
-
-// Middleware simple de ejemplo
-$authMiddleware = function ($params) {
-    if ($_SERVER['HTTP_X_API_KEY'] ?? '' === 'secret123') {
-        return true;
-    }
-    return 'Acceso denegado: API Key inválida';
-};
-
-$router->get('/secure', function () {
-    echo json_encode(['message' => 'Acceso seguro concedido']);
-}, $authMiddleware);
 
 
+// Inicializar hasher
+$hasher = new Hasher();
 
+// Generar hash simple
+$password = 'miContraseñaSegura';
+$hash = $hasher->hash()->sha256($password);
+echo "Hash SHA-256: $hash\n<br><br>";
 
+// Generar hash con salt
+$salt = $hasher->hash()->generateSalt();
+$hashWithSalt = $hasher->hash()->sha256($password, $salt);
+echo "Hash con salt: $hashWithSalt\n<br><br>";
 
-$auth = new Auth('tu-clave-secreta-muy-fuerte');
-$auth->setTokenTTL(3600); // 1 hora
+// Verificar hash
+$valid = $hasher->hash()->verifySha256($password, $hashWithSalt, $salt);
+echo "Verificación: " . ($valid ? "✅ Válido" : "❌ Inválido") . "\n<br><br>";
 
-
-$router->post('/login', function () use ($auth) {
-    // Aquí iría tu lógica de autenticación real
-    $user = ['id' => 1, 'username' => 'johndoe'];
-
-    $token = $auth->generate([
-        'user' => $user,
-        'role' => 'user'
-    ]);
-
-    echo json_encode(['token' => $token]);
-});
-
-$router->get('/protected', function () {
-    $payload = $_SERVER['JWT_PAYLOAD'] ?? [];
-
-    echo json_encode([
-        'message' => 'Acceso autorizado',
-        'user' => $payload['user']['username'] ?? 'unknown',
-        'exp' => date('Y-m-d H:i:s', $_SERVER['JWT_PAYLOAD']['exp'] ?? 0)
-    ]);
-}, $auth->middleware());
-
-
-
-
-
-
-$fs = new Filesystem();
-
-// Crear carpeta
-$result = $fs->createFolder(__DIR__ . '/archive/8523ab8065a69338/files/test');
-if ($result === true) {
-    echo json_encode("Carpeta creada correctamente");
-    echo "<br><br>";
-} else {
-    echo json_encode($result);
-    echo "<br><br>";
-}
-
-
-// Subir archivo con opciones
-$content = "Contenido de prueba";
-$result = $fs->createFile(__DIR__ . '/archive/8523ab8065a69338/files/test/file.txt', $content, 1); // 2: mantener ambos
-if ($result === true) {
-    echo json_encode("Archivo creado correctamente");
-    echo "<br><br>";
-} else {
-    echo json_encode($result);
-    echo "<br><br>";
-}
-
-// Mover archivo con opción de conflicto
-$result = $fs->moveFile(
-    __DIR__ . '/archive/8523ab8065a69338/files/test/file.txt',
-    __DIR__ . '/archive/8523ab8065a69338/files/new_folder/file.txt',
-    1 // 1: reescribir si ya existe
-);
-
-if ($result === true) {
-    echo json_encode("Archivo movido correctamente");
-    echo "<br><br>";
-} else {
-    echo json_encode($result);
-    echo "<br><br>";
-}
-
-// Eliminar archivo
-$result = $fs->deleteFile( __DIR__ . '/archive/8523ab8065a69338/files/new_folder/file.txt');
-if ($result === true) {
-    echo json_encode("Archivo eliminado correctamente");
-    echo "<br><br>";
-} else {
-    echo json_encode($result);
-    echo "<br><br>";
-}
-
-
-
-
-
-
-// Finalmente, lanzamos el router
-$router->dispatch();
-echo "<br><br>";
-echo "<br><br>";
-
-
-$dataHandler = new DataHandler();
-$filePath = __DIR__ . '/data.json';
-
-// Leer valor específico
-$email = $dataHandler->json()->read($filePath, 'email');
-echo "Email actual: $email\n<br><br>";
-
-// Actualizar valor anidado
-$data = $dataHandler->json()->read($filePath); // leer completo
-$data = $dataHandler->json()->update($data, 'preferences.notifications', false);
-
-// Eliminar campo anidado
-$data = $dataHandler->json()->delete($data, 'preferences.theme');
-
-// Agregar hobby
-$data = $dataHandler->json()->push($data, 'hobbies.mada', 'leer', 1);
-$data = $dataHandler->json()->push($data, 'hobbies.oba.mayte', 'nuevo', 0);
-
-// Guardar cambios
-echo $data . "\n<br><br>";
-$result = $dataHandler->json()->write($filePath, $data);
-if ($result === true) {
-    echo "✅ Archivo actualizado correctamente.\n";
-} else {
-    echo "❌ Error al guardar: $result\n";
-}
+// Generar UUID v4
+$uuid = $hasher->hash()->uuid4();
+echo "UUID v4 generado: $uuid\n<br><br>";
